@@ -17,6 +17,9 @@ class ManipulatorRender(QFrame):
         self.boxEdgeLength = 40
         self.boxPenColor = QColor(0, 0, 0)
         self.boxBrushColor = QColor(83, 47, 0)
+        self.cursorColor = QColor(255, 0, 0)
+        self.cursorRadius = 5
+        self.cursorPosition = [-1, -1]
 
     def paintEvent(self, e):
         super().paintEvent(e)
@@ -54,6 +57,13 @@ class ManipulatorRender(QFrame):
                 painter.drawLine(l + self.boxLineWidth / 2, self.height() - t + self.boxLineWidth / 2, r - self.boxLineWidth / 2, self.height() - b - self.boxLineWidth / 2)
                 painter.drawLine(r - self.boxLineWidth / 2, self.height() - t + self.boxLineWidth / 2, l + self.boxLineWidth / 2, self.height() - b - self.boxLineWidth / 2)
 
+            cursorPen = QPen(QColor(0, 0, 0))
+            cursorPen.setWidth(1)
+            cursorBrush = QBrush(self.cursorColor)
+            painter.setBrush(cursorBrush)
+            painter.setPen(cursorPen)
+            painter.drawEllipse(self.cursorPosition[0] - self.cursorRadius / 2, self.cursorPosition[1] - self.cursorRadius / 2, self.cursorRadius, self.cursorRadius)
+
     def setAngles(self, angles):
         self.angles = angles
         self.update()
@@ -62,11 +72,18 @@ class ManipulatorRender(QFrame):
         self.edgeLengths = lengths
         self.update()
 
+    def mousePressEvent(self, e):
+        self.cursorPosition[0] = e.pos().x()
+        self.cursorPosition[1] = e.pos().y()
+        self.update()
+        print(e.pos())
+        super().mousePressEvent(e) #better use eventFilter than that
+
 class ManipulatorWindow(QWidget):
         "docs"
         def __init__(self):
             super(ManipulatorWindow, self).__init__()
-            self.nodeAngles = [60, -30, -60]
+            self.nodeAngles = [60, -30, -45]
             self.nodeNames = ["A", "B", "C"]
             self.edgeLengths = [100, 100, 100]
             self.edgeNames = ["x1", "x2", "x3"]
@@ -98,20 +115,25 @@ class ManipulatorWindow(QWidget):
             self.manipulatorFrame = ManipulatorRender(self.edgeLengths, self.nodeAngles)
             self.manipulatorFrame.setObjectName("manipulator")
             leftLayout.addWidget(self.manipulatorFrame, 1)
-            logLabel = QTextBrowser()
-            logLabel.setText("Logs")
-            logLabel.setEnabled(False)
-            logLabel.setMaximumHeight(50)
-            leftLayout.addWidget(logLabel)
+            self.logLabel = QTextBrowser()
+            self.logLabel.setText("Logs")
+            self.logLabel.setMaximumHeight(50)
+            leftLayout.addWidget(self.logLabel)
             mainLayout.addLayout(leftLayout, 10)
             mainLayout.addLayout(rightLayout, 3)
             self.setLayout(mainLayout)
-            self.updateManipulatorData()
             for ind in range(3):
                 self.angleBoxes[ind].setRange(-180, 180)
                 self.lengthBoxes[ind].setRange(10, 300)
+            self.updateManipulatorData()
+
+            for ind in range(3):
                 self.angleBoxes[ind].valueChanged.connect(self.readManipulatorData)
                 self.lengthBoxes[ind].valueChanged.connect(self.readManipulatorData)
+
+        def mousePressEvent(self, e):
+            pass
+
 
         def updateManipulatorData(self):
             for ind in range(3):
@@ -126,6 +148,14 @@ class ManipulatorWindow(QWidget):
                 self.edgeLengths[ind] = self.lengthBoxes[ind].value()
             self.manipulatorFrame.setAngles(self.nodeAngles)
             self.manipulatorFrame.setLengths(self.edgeLengths)
+            str1 = self.logLabel.toPlainText() + '\n' + "angles: "
+            for ind in range(3):
+                str1 += str(self.nodeAngles[ind]) + ' '
+            str1 += "lengths: "
+            for ind in range(3):
+                str1 += str(self.edgeLengths[ind]) + ' '
+
+            self.logLabel.setText(str1)
 
 
 
