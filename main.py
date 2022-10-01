@@ -40,8 +40,8 @@ def manipulatorNodesPositionFromPositionAndLengths(X, l):
         pB = pB1
     else:
         pB = pB2
-    angles[1] = math.degrees(math.atan((pB[1] - pA[1]) / (pB[0] - pA[0])))
-    angles[2] = math.degrees(math.atan((X[1] - pB[1]) / (X[0] - pB[0])))
+    angles[1] = math.degrees(math.atan2((pB[1] - pA[1]), (pB[0] - pA[0])))
+    angles[2] = math.degrees(math.atan2((X[1] - pB[1]), (X[0] - pB[0])))
     return [angles[0], angles[1] - angles[0], angles[2] - angles[1]]
 
 class ManipulatorRender(QFrame):
