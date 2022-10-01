@@ -8,13 +8,13 @@ def get_intersections(x0, y0, r0, x1, y1, r1):
     d = math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2)
     # non intersecting
     if d > r0 + r1:
-        return None
+        return [False, [0, 0], [0, 0]]
     # One circle within other
     if d < abs(r0 - r1):
-        return None
+        return [False, [0, 0], [0, 0]]
     # coincident circles
     if d == 0 and r0 == r1:
-        return None
+        return [False, [0, 0], [0, 0]]
     else:
         a = (r0 ** 2 - r1 ** 2 + d ** 2) / (2 * d)
         h = math.sqrt(r0 ** 2 - a ** 2)
@@ -25,7 +25,7 @@ def get_intersections(x0, y0, r0, x1, y1, r1):
 
         x4 = x2 - h * (y1 - y0) / d
         y4 = y2 + h * (x1 - x0) / d
-        return [[x3, y3], [x4, y4]]
+        return [True, [x3, y3], [x4, y4]]
 
 def manipulatorNodesPositionFromPositionAndLengths(X, l):
     print(X)
@@ -34,14 +34,23 @@ def manipulatorNodesPositionFromPositionAndLengths(X, l):
     angles = [0, 0, 0]
     angles[0] = math.degrees(math.acos(X[0] / (3 * l[0])))
     pA = [l[0] * math.cos(math.radians(angles[0])), l[0] * math.sin(math.radians(angles[0]))]
-    pB1, pB2 = get_intersections(pA[0], pA[1], l[1], X[0], X[1], l[2])
+    isFound, pB1, pB2 = get_intersections(pA[0], pA[1], l[1], X[0], X[1], l[2])
+    if (isFound == False):
+        print("No intersection")
+        return []
     pB = [0.0, 0.0]
     if (pB1[1] * pA[1] == 0):
         pB = pB1
     else:
         pB = pB2
-    angles[1] = math.degrees(math.atan2((pB[1] - pA[1]), (pB[0] - pA[0])))
-    angles[2] = math.degrees(math.atan2((X[1] - pB[1]), (X[0] - pB[0])))
+    if (pB[0] - pA[0] != 0):
+        angles[1] = math.degrees(math.atan2((pB[1] - pA[1]), (pB[0] - pA[0])))
+    else:
+        angles[1] = 90
+    if (X[0] - pB[0]):
+        angles[2] = math.degrees(math.atan2((X[1] - pB[1]), (X[0] - pB[0])))
+    else:
+        angles[2] = 90
     return [angles[0], angles[1] - angles[0], angles[2] - angles[1]]
 
 class ManipulatorRender(QFrame):
