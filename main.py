@@ -32,7 +32,7 @@ def manipulatorNodesPositionFromPositionAndLengths(X, l):
     if (math.sqrt(X[0] * X[0] + X[1] * X[1]) > (l[0] + l[1] + l[2])):
         return []
     angles = [0, 0, 0]
-    angles[0] = math.degrees(math.acos(X[0] / (3 * l[0])))
+    angles[0] = math.degrees(math.acos(l[0] * X[0] / (l[0] * (l[0] + l[1] + l[2]))))
     pA = [l[0] * math.cos(math.radians(angles[0])), l[0] * math.sin(math.radians(angles[0]))]
     isFound, pB1, pB2 = get_intersections(pA[0], pA[1], l[1], X[0], X[1], l[2])
     if (isFound == False):
