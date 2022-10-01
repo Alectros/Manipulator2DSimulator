@@ -2,6 +2,48 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 import math
 
+def get_intersections(x0, y0, r0, x1, y1, r1):
+    # circle 1: (x0, y0), radius r0
+    # circle 2: (x1, y1), radius r1
+    d = math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2)
+    # non intersecting
+    if d > r0 + r1:
+        return None
+    # One circle within other
+    if d < abs(r0 - r1):
+        return None
+    # coincident circles
+    if d == 0 and r0 == r1:
+        return None
+    else:
+        a = (r0 ** 2 - r1 ** 2 + d ** 2) / (2 * d)
+        h = math.sqrt(r0 ** 2 - a ** 2)
+        x2 = x0 + a * (x1 - x0) / d
+        y2 = y0 + a * (y1 - y0) / d
+        x3 = x2 + h * (y1 - y0) / d
+        y3 = y2 - h * (x1 - x0) / d
+
+        x4 = x2 - h * (y1 - y0) / d
+        y4 = y2 + h * (x1 - x0) / d
+        return [[x3, y3], [x4, y4]]
+
+def manipulatorNodesPositionFromPositionAndLengths(X, l):
+    print(X)
+    if (math.sqrt(X[0] * X[0] + X[1] * X[1]) > (l[0] + l[1] + l[2])):
+        return []
+    angles = [0, 0, 0]
+    angles[0] = math.degrees(math.acos(X[0] / (3 * l[0])))
+    pA = [l[0] * math.cos(math.radians(angles[0])), l[0] * math.sin(math.radians(angles[0]))]
+    pB1, pB2 = get_intersections(pA[0], pA[1], l[1], X[0], X[1], l[2])
+    pB = [0.0, 0.0]
+    if (pB1[1] * pA[1] == 0):
+        pB = pB1
+    else:
+        pB = pB2
+    angles[1] = math.degrees(math.atan((pB[1] - pA[1]) / (pB[0] - pA[0])))
+    angles[2] = math.degrees(math.atan((X[1] - pB[1]) / (X[0] - pB[0])))
+    return [angles[0], angles[1] - angles[0], angles[2] - angles[1]]
+
 class ManipulatorRender(QFrame):
     "docs"
     def __init__(self, initialEdgeLengths, initialAngles):
@@ -75,6 +117,10 @@ class ManipulatorRender(QFrame):
     def mousePressEvent(self, e):
         self.cursorPosition[0] = e.pos().x()
         self.cursorPosition[1] = e.pos().y()
+        ang = (manipulatorNodesPositionFromPositionAndLengths([self.cursorPosition[0] - self.startCoordinates[0], self.height() - (self.cursorPosition[1] + self.startCoordinates[1])], self.edgeLengths))
+        print(ang)
+        if(len(ang) != 0):
+            self.setAngles(ang)
         self.update()
         print(e.pos())
         super().mousePressEvent(e) #better use eventFilter than that
@@ -133,7 +179,6 @@ class ManipulatorWindow(QWidget):
 
         def mousePressEvent(self, e):
             pass
-
 
         def updateManipulatorData(self):
             for ind in range(3):
