@@ -125,6 +125,7 @@ class ManipulatorRender(QFrame):
 class ManipulatorWindow(QWidget):
         "docs"
         def __init__(self):
+            self.flagMoveIn = False
             super(ManipulatorWindow, self).__init__()
             self.nodeAngles = [60, -30, -45]
             self.nodeNames = ["A", "B", "C"]
@@ -180,23 +181,39 @@ class ManipulatorWindow(QWidget):
             self.setButtonLengths.clicked.connect(self.setLengthsFromForm)
             self.logLabel.textChanged.connect(self.endOfLogs)
 
+        def setManipulator(self, pos):
+            self.manipulatorFrame.cursorPosition = [pos.x(), pos.y()]
+            startCoordinates = self.manipulatorFrame.startCoordinates
+            manipCursorPos = [pos.x() - startCoordinates[0],
+                              self.manipulatorFrame.height() - (pos.y() + startCoordinates[1])]
+            ang = (manipulatorNodesPositionFromPositionAndLengths(manipCursorPos, self.edgeLengths))
+            if (len(ang) != 0):
+                self.nodeAngles = ang
+                self.manipulatorFrame.setAngles(ang)
+                self.updateManipulatorData()
+                # str1 = self.logLabel.toPlainText() + '\n' + "set angles: " + str(ang[0]) + ' ' + str(
+                #     ang[1]) + ' ' + str(ang[2])
+                # self.logLabel.setText(str1)
+            # else:
+            #     str1 = self.logLabel.toPlainText() + '\n' + "cursor is out of manipulator zone"
+            #     self.logLabel.setText(str1)
+
         def eventFilter(self, obj, e) -> bool:
-            if (e.type() == QEvent.MouseButtonPress and obj == self.manipulatorFrame):
-                self.manipulatorFrame.cursorPosition = [e.pos().x(), e.pos().y()]
-                startCoordinates = self.manipulatorFrame.startCoordinates
-                manipCursorPos = [e.pos().x() - startCoordinates[0], self.manipulatorFrame.height() - (e.pos().y() + startCoordinates[1])]
-                ang = (manipulatorNodesPositionFromPositionAndLengths(manipCursorPos, self.edgeLengths))
-                if (len(ang) != 0):
-                    self.nodeAngles = ang
-                    self.manipulatorFrame.setAngles(ang)
-                    self.updateManipulatorData()
-                    str1 = self.logLabel.toPlainText() + '\n' + "set angles: " + str(ang[0]) + ' ' + str(ang[1]) + ' ' + str(ang[2])
-                    self.logLabel.setText(str1)
-                else:
-                    str1 = self.logLabel.toPlainText() + '\n' + "cursor is out of manipulator zone"
-                    self.logLabel.setText(str1)
-                return True
-            return False
+            if obj == self.manipulatorFrame:
+                if e.type() == QEvent.MouseButtonPress:
+                    self.setManipulator(e.pos())
+                    self.flagMoveIn = True
+                    return True
+
+                if e.type() == QEvent.MouseButtonRelease:
+                    self.flagMoveIn = False
+                    return True
+
+                if self.flagMoveIn == True and e.type() == QEvent.MouseMove:
+                    self.setManipulator(e.pos())
+                    return True
+
+                return False
 
         def updateManipulatorData(self):
             for ind in range(3):
