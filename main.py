@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
+from PyQt5.Qt import *
 import math
 
 def get_intersections(x0, y0, r0, x1, y1, r1):
@@ -28,7 +29,6 @@ def get_intersections(x0, y0, r0, x1, y1, r1):
         return [True, [x3, y3], [x4, y4]]
 
 def manipulatorNodesPositionFromPositionAndLengths(X, l):
-    print(X)
     if (math.sqrt(X[0] * X[0] + X[1] * X[1]) > (l[0] + l[1] + l[2])):
         return []
     angles = [0, 0, 0]
@@ -36,7 +36,6 @@ def manipulatorNodesPositionFromPositionAndLengths(X, l):
     pA = [l[0] * math.cos(math.radians(angles[0])), l[0] * math.sin(math.radians(angles[0]))]
     isFound, pB1, pB2 = get_intersections(pA[0], pA[1], l[1], X[0], X[1], l[2])
     if (isFound == False):
-        print("No intersection")
         return []
     pB = [0.0, 0.0]
     if (pB1[1] * pA[1] == 0):
@@ -123,17 +122,6 @@ class ManipulatorRender(QFrame):
         self.edgeLengths = lengths
         self.update()
 
-    def mousePressEvent(self, e):
-        self.cursorPosition[0] = e.pos().x()
-        self.cursorPosition[1] = e.pos().y()
-        ang = (manipulatorNodesPositionFromPositionAndLengths([self.cursorPosition[0] - self.startCoordinates[0], self.height() - (self.cursorPosition[1] + self.startCoordinates[1])], self.edgeLengths))
-        print(ang)
-        if(len(ang) != 0):
-            self.setAngles(ang)
-        self.update()
-        print(e.pos())
-        super().mousePressEvent(e) #better use eventFilter than that
-
 class ManipulatorWindow(QWidget):
         "docs"
         def __init__(self):
@@ -150,25 +138,32 @@ class ManipulatorWindow(QWidget):
             anglesFormLayout = QFormLayout()
             angleLabelValue = QLabel("Angle")
             angleLabelName = QLabel("Name")
+            self.setButtonAngles = QPushButton("Set")
+            self.setButtonAngles.setMaximumWidth(50)
             anglesFormLayout.addRow(angleLabelName, angleLabelValue)
             self.angleBoxes = [QDoubleSpinBox(), QDoubleSpinBox(), QDoubleSpinBox()]
             self.angleLabels = [QLabel(self.nodeNames[0]), QLabel(self.nodeNames[1]), QLabel(self.nodeNames[2])]
             anglesFormLayout.addRow(self.angleLabels[0], self.angleBoxes[0])
             anglesFormLayout.addRow(self.angleLabels[1], self.angleBoxes[1])
             anglesFormLayout.addRow(self.angleLabels[2], self.angleBoxes[2])
+            anglesFormLayout.addRow("", self.setButtonAngles)
             rightLayout.addLayout(anglesFormLayout)
             self.lengthBoxes = [QSpinBox(), QSpinBox(), QSpinBox()]
             lengthsFormLayout = QFormLayout()
             lengthLabelValue = QLabel("Length")
             lengthLabelName = QLabel("Name")
+            self.setButtonLengths = QPushButton("Set")
+            self.setButtonLengths.setMaximumWidth(50)
             self.lengthLabels = [QLabel(self.edgeNames[0]), QLabel(self.edgeNames[1]), QLabel(self.edgeNames[2])]
             lengthsFormLayout.addRow(lengthLabelName, lengthLabelValue)
             lengthsFormLayout.addRow(self.lengthLabels[0], self.lengthBoxes[0])
             lengthsFormLayout.addRow(self.lengthLabels[1], self.lengthBoxes[1])
             lengthsFormLayout.addRow(self.lengthLabels[2], self.lengthBoxes[2])
+            lengthsFormLayout.addRow("", self.setButtonLengths)
             rightLayout.addLayout(lengthsFormLayout)
             self.manipulatorFrame = ManipulatorRender(self.edgeLengths, self.nodeAngles)
             self.manipulatorFrame.setObjectName("manipulator")
+            self.manipulatorFrame.installEventFilter(self)
             leftLayout.addWidget(self.manipulatorFrame, 1)
             self.logLabel = QTextBrowser()
             self.logLabel.setText("Logs")
@@ -181,13 +176,27 @@ class ManipulatorWindow(QWidget):
                 self.angleBoxes[ind].setRange(-180, 180)
                 self.lengthBoxes[ind].setRange(10, 300)
             self.updateManipulatorData()
+            self.setButtonAngles.clicked.connect(self.setAnglesFromForm)
+            self.setButtonLengths.clicked.connect(self.setLengthsFromForm)
+            self.logLabel.textChanged.connect(self.endOfLogs)
 
-            for ind in range(3):
-                self.angleBoxes[ind].valueChanged.connect(self.readManipulatorData)
-                self.lengthBoxes[ind].valueChanged.connect(self.readManipulatorData)
-
-        def mousePressEvent(self, e):
-            pass
+        def eventFilter(self, obj, e) -> bool:
+            if (e.type() == QEvent.MouseButtonPress and obj == self.manipulatorFrame):
+                self.manipulatorFrame.cursorPosition = [e.pos().x(), e.pos().y()]
+                startCoordinates = self.manipulatorFrame.startCoordinates
+                manipCursorPos = [e.pos().x() - startCoordinates[0], self.manipulatorFrame.height() - (e.pos().y() + startCoordinates[1])]
+                ang = (manipulatorNodesPositionFromPositionAndLengths(manipCursorPos, self.edgeLengths))
+                if (len(ang) != 0):
+                    self.nodeAngles = ang
+                    self.manipulatorFrame.setAngles(ang)
+                    self.updateManipulatorData()
+                    str1 = self.logLabel.toPlainText() + '\n' + "set angles: " + str(ang[0]) + ' ' + str(ang[1]) + ' ' + str(ang[2])
+                    self.logLabel.setText(str1)
+                else:
+                    str1 = self.logLabel.toPlainText() + '\n' + "cursor is out of manipulator zone"
+                    self.logLabel.setText(str1)
+                return True
+            return False
 
         def updateManipulatorData(self):
             for ind in range(3):
@@ -211,6 +220,26 @@ class ManipulatorWindow(QWidget):
 
             self.logLabel.setText(str1)
 
+        def setAnglesFromForm(self):
+            for ind in range(3):
+                self.nodeAngles[ind] = self.angleBoxes[ind].value()
+            self.manipulatorFrame.setAngles(self.nodeAngles)
+            str1 = self.logLabel.toPlainText() + '\n' + "angles: "
+            for ind in range(3):
+                str1 += str(self.nodeAngles[ind]) + ' '
+            self.logLabel.setText(str1)
+
+        def setLengthsFromForm(self):
+            for ind in range(3):
+                self.edgeLengths[ind] = self.lengthBoxes[ind].value()
+            self.manipulatorFrame.setLengths(self.edgeLengths)
+            str1 = self.logLabel.toPlainText() + '\n' + "lengths: "
+            for ind in range(3):
+                str1 += str(self.edgeLengths[ind]) + ' '
+            self.logLabel.setText(str1)
+
+        def endOfLogs(self):
+            self.logLabel.moveCursor(QTextCursor.End)
 
 
 app = QApplication([])
