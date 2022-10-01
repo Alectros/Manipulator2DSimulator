@@ -126,6 +126,7 @@ class ManipulatorWindow(QWidget):
         "docs"
         def __init__(self):
             self.flagMoveIn = False
+            self.logs = "Logs"
             super(ManipulatorWindow, self).__init__()
             self.nodeAngles = [60, -30, -45]
             self.nodeNames = ["A", "B", "C"]
@@ -169,6 +170,7 @@ class ManipulatorWindow(QWidget):
             self.logLabel = QTextBrowser()
             self.logLabel.setText("Logs")
             self.logLabel.setMaximumHeight(50)
+            self.logLabel.installEventFilter(self)
             leftLayout.addWidget(self.logLabel)
             mainLayout.addLayout(leftLayout, 10)
             mainLayout.addLayout(rightLayout, 3)
@@ -191,12 +193,10 @@ class ManipulatorWindow(QWidget):
                 self.nodeAngles = ang
                 self.manipulatorFrame.setAngles(ang)
                 self.updateManipulatorData()
-                # str1 = self.logLabel.toPlainText() + '\n' + "set angles: " + str(ang[0]) + ' ' + str(
-                #     ang[1]) + ' ' + str(ang[2])
-                # self.logLabel.setText(str1)
-            # else:
-            #     str1 = self.logLabel.toPlainText() + '\n' + "cursor is out of manipulator zone"
-            #     self.logLabel.setText(str1)
+                self.logs = self.logs + '\n' + "set angles: " + str(ang[0]) + ' ' + str(
+                    ang[1]) + ' ' + str(ang[2])
+            else:
+                self.logs = self.logs + '\n' + "cursor is out of manipulator zone"
 
         def eventFilter(self, obj, e) -> bool:
             if obj == self.manipulatorFrame:
@@ -213,7 +213,10 @@ class ManipulatorWindow(QWidget):
                     self.setManipulator(e.pos())
                     return True
 
-                return False
+            if obj == self.logLabel and e.type() == QEvent.MouseButtonDblClick:
+                self.logLabel.setText(self.logs)
+                return True
+            return False
 
         def updateManipulatorData(self):
             for ind in range(3):
@@ -228,32 +231,31 @@ class ManipulatorWindow(QWidget):
                 self.edgeLengths[ind] = self.lengthBoxes[ind].value()
             self.manipulatorFrame.setAngles(self.nodeAngles)
             self.manipulatorFrame.setLengths(self.edgeLengths)
-            str1 = self.logLabel.toPlainText() + '\n' + "angles: "
+            str1 = self.logs + '\n' + "angles: "
             for ind in range(3):
                 str1 += str(self.nodeAngles[ind]) + ' '
             str1 += "lengths: "
             for ind in range(3):
                 str1 += str(self.edgeLengths[ind]) + ' '
-
-            self.logLabel.setText(str1)
+            self.logs = str1
 
         def setAnglesFromForm(self):
             for ind in range(3):
                 self.nodeAngles[ind] = self.angleBoxes[ind].value()
             self.manipulatorFrame.setAngles(self.nodeAngles)
-            str1 = self.logLabel.toPlainText() + '\n' + "angles: "
+            str1 = self.logs + '\n' + "angles: "
             for ind in range(3):
                 str1 += str(self.nodeAngles[ind]) + ' '
-            self.logLabel.setText(str1)
+            self.logs = str1
 
         def setLengthsFromForm(self):
             for ind in range(3):
                 self.edgeLengths[ind] = self.lengthBoxes[ind].value()
             self.manipulatorFrame.setLengths(self.edgeLengths)
-            str1 = self.logLabel.toPlainText() + '\n' + "lengths: "
+            str1 = self.logs + '\n' + "lengths: "
             for ind in range(3):
                 str1 += str(self.edgeLengths[ind]) + ' '
-            self.logLabel.setText(str1)
+            self.logs = str1
 
         def endOfLogs(self):
             self.logLabel.moveCursor(QTextCursor.End)
