@@ -4,6 +4,8 @@ from PyQt5.Qt import *
 import math
 
 def get_intersections(x0, y0, r0, x1, y1, r1):
+    "Returns intersection points of 2 circles, if intersection dont exist - returns False at first argument"
+    # Source: https://translated.turbopages.org/proxy_u/en-ru.ru.0c9a143d-6339f92c-b0c9c60a-74722d776562/https/stackoverflow.com/questions/55816902/finding-the-intersection-of-two-circles
     # circle 1: (x0, y0), radius r0
     # circle 2: (x1, y1), radius r1
     d = math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2)
@@ -29,6 +31,7 @@ def get_intersections(x0, y0, r0, x1, y1, r1):
         return [True, [x3, y3], [x4, y4]]
 
 def manipulatorNodesPositionFromPositionAndLengths(X, l):
+    "Returns node angles, from final manipulator position"
     if (math.sqrt(X[0] * X[0] + X[1] * X[1]) > (l[0] + l[1] + l[2])):
         return []
     angles = [0, 0, 0]
@@ -53,7 +56,7 @@ def manipulatorNodesPositionFromPositionAndLengths(X, l):
     return [angles[0], angles[1] - angles[0], angles[2] - angles[1]]
 
 class ManipulatorRender(QFrame):
-    "docs"
+    "Draw a manipulator with input edge lengths and angles"
     def __init__(self, initialEdgeLengths, initialAngles):
         super().__init__()
         self.edgeLengths = initialEdgeLengths
@@ -72,6 +75,7 @@ class ManipulatorRender(QFrame):
         self.cursorPosition = [-1, -1]
 
     def paintEvent(self, e):
+        "Draws three - link manipulator with the specified parameters"
         super().paintEvent(e)
         brush = QBrush(QColor(100, 200, 100))
         painter = QPainter(self)
@@ -123,7 +127,7 @@ class ManipulatorRender(QFrame):
         self.update()
 
 class ManipulatorWindow(QWidget):
-        "docs"
+        "Window with manipulator, log text space and manipulator parameters"
         def __init__(self):
             self.flagMoveIn = False
             self.logs = "Logs"
@@ -184,11 +188,14 @@ class ManipulatorWindow(QWidget):
             self.logLabel.textChanged.connect(self.endOfLogs)
 
         def setManipulator(self, pos):
+            "Applys algorithm and sets angles to manipulator"
             self.manipulatorFrame.cursorPosition = [pos.x(), pos.y()]
             startCoordinates = self.manipulatorFrame.startCoordinates
             manipCursorPos = [pos.x() - startCoordinates[0],
                               self.manipulatorFrame.height() - (pos.y() + startCoordinates[1])]
+            # !here you can use your own algorithm, which returns 3 angles
             ang = (manipulatorNodesPositionFromPositionAndLengths(manipCursorPos, self.edgeLengths))
+            # !
             if (len(ang) != 0):
                 self.nodeAngles = ang
                 self.manipulatorFrame.setAngles(ang)
@@ -219,6 +226,7 @@ class ManipulatorWindow(QWidget):
             return False
 
         def updateManipulatorData(self):
+            "Loads internal manipulator data on form"
             for ind in range(3):
                 self.angleBoxes[ind].setValue(self.nodeAngles[ind])
                 self.lengthBoxes[ind].setValue(self.edgeLengths[ind])
@@ -226,6 +234,7 @@ class ManipulatorWindow(QWidget):
                 self.lengthLabels[ind].setText(self.edgeNames[ind])
 
         def readManipulatorData(self):
+            "Loads form parameters to internal data"
             for ind in range(3):
                 self.nodeAngles[ind] = self.angleBoxes[ind].value()
                 self.edgeLengths[ind] = self.lengthBoxes[ind].value()
@@ -240,6 +249,7 @@ class ManipulatorWindow(QWidget):
             self.logs = str1
 
         def setAnglesFromForm(self):
+            "Loads node angles to internal parameters"
             for ind in range(3):
                 self.nodeAngles[ind] = self.angleBoxes[ind].value()
             self.manipulatorFrame.setAngles(self.nodeAngles)
@@ -249,6 +259,7 @@ class ManipulatorWindow(QWidget):
             self.logs = str1
 
         def setLengthsFromForm(self):
+            "Loads edges lengths to internal parameters"
             for ind in range(3):
                 self.edgeLengths[ind] = self.lengthBoxes[ind].value()
             self.manipulatorFrame.setLengths(self.edgeLengths)
